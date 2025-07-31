@@ -938,7 +938,59 @@ Microsoft-এর অফিসিয়াল Activation Key, ইমেইলে ড
             if (product.category === 'subscription' && Array.isArray(product.durations) && product.durations.length > 0) { currentPrice = parseFloat(product.durations[0].price); durationSelectorHTML = `<div class="duration-selector" style="margin-bottom:0.75rem;display:block;"><label for="duration-detail-${product.id}" style="font-weight:600;margin-bottom:0.5rem;display:block;">Select Duration:</label><select id="duration-detail-${product.id}" data-product-id="${product.id}" style="width:100%;padding:0.7rem;border:1px solid #ccc;border-radius:6px;font-size:1rem;">${product.durations.map(d => `<option value="${parseFloat(d.price)}" ${parseFloat(d.price) === currentPrice ? 'selected' : ''}>${d.label} - ৳${parseFloat(d.price).toFixed(2)}</option>`).join('')}</select></div>`; }
             const relatedProductsHTML = renderRelatedProductsSection(product.id, product.category);
             const tempImageDiv = document.createElement('div'); tempImageDiv.appendChild(imageContainer);
-            detailPageElement.innerHTML = `<div class="product-detail-container"><div class="product-detail-images">${tempImageDiv.innerHTML}</div><div class="product-detail-info"><h2 class="product-detail-title">${product.name || 'N/A'}</h2><p class="product-detail-description">${product.longDescription || product.description || 'An exceptional digital product.'}</p><div class="product-detail-price">৳${currentPrice.toFixed(2)}</div>${durationSelectorHTML}<div class="product-detail-actions"><button class="buy-now-detail" data-id="${product.id}"><i class="fas fa-bolt"></i> Buy Now</button><button class="add-to-cart-detail" data-id="${product.id}"><i class="fas fa-cart-plus"></i> Add to Cart</button></div></div></div>${relatedProductsHTML}`;
+
+            const tabsHTML = `
+                <div class="product-tabs">
+                    <button class="tab-link active" data-tab="description">Description</button>
+                    <button class="tab-link" data-tab="reviews">Reviews</button>
+                </div>
+                <div id="description" class="tab-content active">
+                    <p>${product.longDescription || 'No detailed description available.'}</p>
+                </div>
+                <div id="reviews" class="tab-content">
+                    <p>No reviews yet for this product.</p>
+                </div>
+            `;
+
+            detailPageElement.innerHTML = `
+                <div class="product-detail-container">
+                    <div class="product-detail-images">${tempImageDiv.innerHTML}</div>
+                    <div class="product-detail-info">
+                        <h2 class="product-detail-title">${product.name || 'N/A'}</h2>
+                        <p class="product-detail-description">${product.description || 'An exceptional digital product.'}</p>
+                        <div class="product-detail-price">৳${currentPrice.toFixed(2)}</div>
+                        ${durationSelectorHTML}
+                        <div class="product-detail-actions">
+                            <button class="buy-now-detail" data-id="${product.id}"><i class="fas fa-bolt"></i> Buy Now</button>
+                            <button class="add-to-cart-detail" data-id="${product.id}"><i class="fas fa-cart-plus"></i> Add to Cart</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="product-tabs-container">
+                    ${tabsHTML}
+                </div>
+                ${relatedProductsHTML}
+            `;
+
+            const tabLinks = detailPageElement.querySelectorAll('.tab-link');
+            const tabContents = detailPageElement.querySelectorAll('.tab-content');
+
+            tabLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    const tab = link.dataset.tab;
+
+                    tabLinks.forEach(l => l.classList.remove('active'));
+                    link.classList.add('active');
+
+                    tabContents.forEach(content => {
+                        content.classList.remove('active');
+                        if (content.id === tab) {
+                            content.classList.add('active');
+                        }
+                    });
+                });
+            });
+
             const detailDurationSelector = detailPageElement.querySelector(`#duration-detail-${product.id}`); if (detailDurationSelector) { detailDurationSelector.addEventListener('change', (e) => { const newPrice = parseFloat(e.target.value); const priceElement = detailPageElement.querySelector('.product-detail-price'); if (priceElement) priceElement.textContent = `৳${newPrice.toFixed(2)}`; }); }
             const buyNowDetailButton = detailPageElement.querySelector('.buy-now-detail'); if (buyNowDetailButton) { buyNowDetailButton.addEventListener('click', (e) => { const productId = parseInt(e.currentTarget.dataset.id); const productForCart = getProductById(productId); if (productForCart) { const productToBuy = { ...productForCart }; const durationSel = document.getElementById(`duration-detail-${productId}`); if (durationSel && durationSel.value) { const selectedOption = durationSel.options[durationSel.selectedIndex]; productToBuy.price = parseFloat(selectedOption.value); productToBuy.selectedDurationLabel = selectedOption.text.split(' - ')[0]; } else if (Array.isArray(productToBuy.durations) && productToBuy.durations.length > 0) { productToBuy.price = parseFloat(productToBuy.durations[0].price); productToBuy.selectedDurationLabel = productToBuy.durations[0].label; } cart = [{ ...productToBuy, quantity: 1 }]; updateCart(); navigateTo('checkout', null, null, true); } }); }
             const addToCartDetailButton = detailPageElement.querySelector('.add-to-cart-detail'); if (addToCartDetailButton) { addToCartDetailButton.addEventListener('click', (e) => { const productId = parseInt(e.currentTarget.dataset.id); const productForCart = getProductById(productId); if(productForCart) { const productToAdd = { ...productForCart }; const durationSel = document.getElementById(`duration-detail-${productId}`); if (durationSel && durationSel.value) { const selectedOption = durationSel.options[durationSel.selectedIndex]; productToAdd.price = parseFloat(selectedOption.value); } else if (Array.isArray(productToAdd.durations) && productToAdd.durations.length > 0) { productToAdd.price = parseFloat(productToAdd.durations[0].price); } addToCart(productToAdd); } }); }
